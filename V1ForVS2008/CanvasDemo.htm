@@ -1,0 +1,89 @@
+<html>
+<head>
+<style>
+.txt{width:300px;}
+</style>
+</head>
+<body>
+<canvas id="cvs" width="256px" height="256px"></canvas><br />
+<select id="selRules" onchange="selRulesChanged();"><option value="">下拉选择现有的规则...</option></select><br />
+R:<input type="text" class="txt" id="txtRed" value="Math.pow(x, 2) % y" /><br />
+G:<input type="text" class="txt" id="txtGreen" value="y % x" /><br />
+B:<input type="text" class="txt" id="txtBlue" value="x % y" /><br />
+<input type="button" value="generate" onclick="start()" />
+<script type="text/javascript">
+var cvs = document.getElementById("cvs");
+var ctx = cvs.getContext("2d");
+var mult = 2 * Math.PI / 256.0;
+var selRules;
+var funRed; 
+var funGreen;
+var funBlue;
+
+var ruleSets = [
+   {name:"Blinds", r:"(Math.round(4*x-y*2) % 2) - x", g:"(Math.abs(x+2*y) % 0.75)*10+y/5", b:"Math.round(Math.sin(Math.sqrt(x*x+y*y))*3/5)+x/3"},
+   {name:"Bullseye", r:"1-Math.round(x/y*0.5)", g:"1-Math.round(y/x*0.4)", b:"Math.round(Math.sin(Math.sqrt(x*x+y*y)*10))"},
+   {name:"Wave", r:"Math.cos(x/2)/2", g:"Math.cos(y/2)/3", b:"Math.round(Math.sin(Math.sqrt(x*x*x+y*y)*10))"},
+   {name:"Swirls", r:"x*15", g:"Math.cos(x*y*4900)", b:"y*15"},
+   {name:"Semi-Random",r:"Math.cos(x) * Math.random()", g:"Math.pow(y,2)", b:"Math.pow(x,2)"},
+   {name:"Mod",r:"Math.pow(x,2) % y", g:"y % x", b:"x % y"}
+];
+function init(){
+   selRules = document.getElementById("selRules");
+   
+   for (var i=0; i<ruleSets.length; i++){
+      selRules.options.add(new Option(ruleSets[i].name,i));
+   }
+}
+function selRulesChanged(){
+   if (selRules.selectedIndex > 0){
+      var obj = ruleSets[selRules.selectedIndex-1];
+      txtRed.value = obj.r;
+      txtGreen.value = obj.g;
+      txtBlue.value = obj.b;
+   }
+}
+function start(){
+   funRed = new Function("x","y","return "+document.getElementById("txtRed").value);
+   funGreen = new Function("x","y","return "+document.getElementById("txtGreen").value);
+   funBlue = new Function("x","y","return "+document.getElementById("txtBlue").value);
+   
+   genericImage();
+}
+function genericImage(){
+   var imageData = ctx.getImageData(0,0,cvs.width,cvs.height);
+   var index = 0;
+
+   for (var Yi = 0; Yi < cvs.height; Yi++){
+      var y = (Yi - 128) * mult;
+      for (var Xi = 0; Xi < cvs.width; Xi++){
+         var x = (Xi - 128) * mult;
+         
+         var outputR = funRed(x,y);
+         var outputG = funGreen(x,y);
+         var outputB = funBlue(x,y);
+         
+         imageData.data[index++] = process(outputR);
+         imageData.data[index++] = process(outputG);
+         imageData.data[index++] = process(outputB);
+         imageData.data[index++] = 255;
+      }
+   }
+   
+   ctx.putImageData(imageData,0,0);
+}
+function process(value){
+   if (value < 0 || isNaN(value)){
+      value = 0;
+   }
+   else if (value > 1){
+      value = 1;
+   }
+   
+   value = value * 255;
+   return value;
+}
+init();
+</script>
+</body>
+</html>
